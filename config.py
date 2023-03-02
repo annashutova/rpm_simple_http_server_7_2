@@ -10,3 +10,5 @@ INSERT = 'INSERT INTO group_{group_num} VALUES (\'{name}\')'
 DELETE = 'DELETE FROM group_{group_num} WHERE name=\'{name}\''
 OK = 200
 NOT_FOUND = 404
+FORBIDDEN = 403
+GET_TOKEN = 'SELECT token FROM token WHERE username=\'{username}\''

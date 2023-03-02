@@ -36,6 +36,15 @@ def change_db(path: str, name: str, request: str) -> bool:
     else:
         db_connection.commit()
         return bool(db_cursor.rowcount)
+    
+
+def is_valid_token(username: str, token: str) -> bool:
+    global db_cursor
+    db_cursor.execute(GET_TOKEN.format(username=username))
+    answer = db_cursor.fetchone()
+    if answer:
+        return token == answer[0]
+    return False
 
 
 def get_template(path: str) -> str:
@@ -47,7 +56,6 @@ def get_template(path: str) -> str:
 class CustomHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        print(f'request data:\n {self.__dict__}')
         self.send_response(200)
         self.send_header('Content-type', 'html')
         self.end_headers()
@@ -59,14 +67,15 @@ class CustomHandler(BaseHTTPRequestHandler):
             self.wfile.write(page.encode())
 
 
-    def make_changes(self, request: str, command: str):
+    def make_changes(self):
         if self.path in PAGES:
             content_length = int(self.headers['Content-Length'])
             data = loads(self.rfile.read(content_length).decode())
-            print(f'{command} request data: {data}')
+            print(f'{self.command} request data: {data}')
             name = data.get('name')
+            request = INSERT if self.command == 'POST' else DELETE
             result = 'OK' if change_db(self.path, name, request) else 'FAIL'
-            return OK, f'{command} {result}'
+            return OK, f'{self.command} {result}'
         else:
             return NOT_FOUND, 'Content was NOT FOUND'
         
@@ -78,12 +87,29 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.wfile.write(msg.encode())
 
 
+    def check_auth(self):
+        auth = self.headers.get('Authorization', '').split()
+        if len(auth) == 2:
+            username, token = auth[0], auth[1][1:-1]
+            if is_valid_token(username, token):
+                return True
+        return False
+
+
+    def process(self):
+        if self.check_auth():
+            code, msg = self.make_changes()
+        else:
+            code, msg = FORBIDDEN, 'Authorization was failed!'
+        self.respond(code, msg)
+
+
     def do_POST(self):
-        self.respond(*self.make_changes(INSERT, self.command))
+        self.process()
 
 
     def do_DELETE(self):
-        self.respond(*self.make_changes(DELETE, self.command))
+        self.process()
 
 
 if __name__ == '__main__':
