@@ -3,6 +3,8 @@ from psycopg2 import connect
 from dotenv import load_dotenv
 from os import getenv
 from config import *
+from json import loads
+
 
 load_dotenv()
 
@@ -24,6 +26,12 @@ def get_data(path: str) -> dict:
         }
 
 
+def change_db(path: str, name: str, request: str):
+    global db_cursor, db_connection
+    db_cursor.execute(request.format(group_num=path[1:], name=name))
+    db_connection.commit()
+
+
 def get_template(path: str) -> str:
     if path in PAGES:
         return GROUP_PAGE
@@ -43,6 +51,22 @@ class CustomHandler(BaseHTTPRequestHandler):
             if self.path in PAGES:
                 page = page.format(**get_data(self.path))
             self.wfile.write(page.encode())
+
+
+    def make_changes(self, request: str, command: str):
+        content_length = int(self.headers['Content-Length'])
+        data = loads(self.rfile.read(content_length).decode())
+        print(f'{command} request data: {data}')
+        name = data.get('name')
+        change_db(self.path, name, request)
+
+
+    def do_POST(self):
+        self.make_changes(INSERT, self.command)
+
+
+    def do_DELETE(self):
+        self.make_changes(DELETE, self.command)
 
 
 if __name__ == '__main__':
