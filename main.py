@@ -26,10 +26,16 @@ def get_data(path: str) -> dict:
         }
 
 
-def change_db(path: str, name: str, request: str):
+def change_db(path: str, name: str, request: str) -> bool:
     global db_cursor, db_connection
-    db_cursor.execute(request.format(group_num=path[1:], name=name))
-    db_connection.commit()
+    try:
+        db_cursor.execute(request.format(group_num=path[1:], name=name))
+    except Exception as error:
+        print(f'change_db error: {error}')
+        return False
+    else:
+        db_connection.commit()
+        return bool(db_cursor.rowcount)
 
 
 def get_template(path: str) -> str:
@@ -54,19 +60,30 @@ class CustomHandler(BaseHTTPRequestHandler):
 
 
     def make_changes(self, request: str, command: str):
-        content_length = int(self.headers['Content-Length'])
-        data = loads(self.rfile.read(content_length).decode())
-        print(f'{command} request data: {data}')
-        name = data.get('name')
-        change_db(self.path, name, request)
+        if self.path in PAGES:
+            content_length = int(self.headers['Content-Length'])
+            data = loads(self.rfile.read(content_length).decode())
+            print(f'{command} request data: {data}')
+            name = data.get('name')
+            result = 'OK' if change_db(self.path, name, request) else 'FAIL'
+            return OK, f'{command} {result}'
+        else:
+            return NOT_FOUND, 'Content was NOT FOUND'
+        
+
+    def respond(self, code: int, msg: str):
+        self.send_response(code)
+        self.send_header('Content-type', 'text')
+        self.end_headers()
+        self.wfile.write(msg.encode())
 
 
     def do_POST(self):
-        self.make_changes(INSERT, self.command)
+        self.respond(*self.make_changes(INSERT, self.command))
 
 
     def do_DELETE(self):
-        self.make_changes(DELETE, self.command)
+        self.respond(*self.make_changes(DELETE, self.command))
 
 
 if __name__ == '__main__':
