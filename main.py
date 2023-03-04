@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 from os import getenv
 from config import *
 from json import loads
-
+from views import weather, group, main_page, list_to_paragraphs
+import requests
 
 load_dotenv()
 
@@ -13,18 +14,42 @@ PG_HOST = getenv('PG_HOST')
 PG_PORT = getenv('PG_PORT')
 PG_USER = getenv('PG_USER')
 PG_PASSWORD = getenv('PG_PASSWORD')
+YANDEX_KEY = getenv('YANDEX_KEY')
 
 
 def get_data(path: str) -> dict:
     global db_cursor
     db_cursor.execute(SELECT_GROUPS.format(group_num=path[1:]))
     students = db_cursor.fetchall()
+    print(students)
     return {
         'number': len(students), 
-        'students': [record[0] for record in students] if students else 'No students found', 
-        'group': '1.11.7.2' if path == page_7_2 else '1.11.7.1'
+        'group': '1.11.7.2' if path == page_7_2 else '1.11.7.1',
+        'rendered_students': list_to_paragraphs([record[0] for record in students])
         }
 
+
+def get_weather() -> dict:
+    result = {
+        'temp': None,
+        'feels_like': None,
+        'condition' : None
+        }
+    URL = 'https://api.weather.yandex.ru/v2/informers'
+    location = {'lat': 43.403438, 'lon': 39.981544}
+    response = requests.get(URL, params=location, headers={'X-Yandex-API-Key': YANDEX_KEY})
+    if response.status_code == OK:
+        response_data = response.json()
+        if response_data:
+            fact = response_data.get('fact')
+            try:
+                for key in result.keys():
+                    result[key] = fact.get(key)
+            except Exception as error:
+                print(f'YANDEX API get_weather error: {error}')
+    else:
+        print(f'YANDEX API get_weather failed with status code: {response.status_code}')
+    return result
 
 def change_db(path: str, name: str, request: str) -> bool:
     global db_cursor, db_connection
@@ -47,10 +72,12 @@ def is_valid_token(username: str, token: str) -> bool:
     return False
 
 
-def get_template(path: str) -> str:
+def get_template(path: str) -> bytes:
     if path in PAGES:
-        return GROUP_PAGE
-    return MAIN_PAGE
+        return group(path, get_data(path))
+    elif path == WEATHER:
+        return weather(get_weather())
+    return main_page()
         
 
 class CustomHandler(BaseHTTPRequestHandler):
@@ -59,18 +86,15 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'html')
         self.end_headers()
-        template = get_template(self.path)
-        with open(template, 'r') as f:
-            page = f.read()
-            if self.path in PAGES:
-                page = page.format(**get_data(self.path))
-            self.wfile.write(page.encode())
+        self.wfile.write(get_template(self.path))
 
 
     def make_changes(self):
         if self.path in PAGES:
             content_length = int(self.headers['Content-Length'])
-            data = loads(self.rfile.read(content_length).decode())
+            k = self.rfile.read(content_length).decode()
+            print(k)
+            data = loads(k)
             print(f'{self.command} request data: {data}')
             name = data.get('name')
             request = INSERT if self.command == 'POST' else DELETE
