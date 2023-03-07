@@ -8,11 +8,10 @@ def weather(weather: dict) -> bytes:
     with open(WEATHER_TEMPLATE, 'r') as f:
         return f.read().format(**weather).encode(ENCODING)
     
-def students(students_data: dict): ################ 
-    print(students_data)
+def students(students_data: dict):
     with open(STUDENTS_TEMPLATE, 'r') as f:
         return f.read().format(**students_data).encode(ENCODING)
 
 def main_page():
-    with open(MAIN_TEMPLATE, 'r') as f: ###############
+    with open(MAIN_TEMPLATE, 'r') as f:
         return f.read().encode(ENCODING)

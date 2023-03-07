@@ -7,6 +7,7 @@ from json import loads
 from views import weather, students, main_page, list_to_paragraphs
 import requests
 
+
 load_dotenv()
 
 PG_DBNAME = getenv('PG_DBNAME')
@@ -19,7 +20,7 @@ YANDEX_KEY = getenv('YANDEX_KEY')
 
 def get_data(query: dict, table: str) -> dict:
     global db_cursor
-    db_cursor.execute(query_select(SELECT.format(table=table), query)) ############
+    db_cursor.execute(query_request(SELECT.format(table=table), query)) ############
     students = db_cursor.fetchall()
     return {
         'number': len(students), 
@@ -27,7 +28,7 @@ def get_data(query: dict, table: str) -> dict:
         }
 
 
-def query_select(request: str, query: dict):
+def query_request(request: str, query: dict):
     if query:
         parts = []
         for key, value in query.items():
@@ -61,10 +62,15 @@ def get_weather() -> dict:
         print(f'YANDEX API get_weather failed with status code: {response.status_code}')
     return result
 
-def change_db(path: str, name: str, request: str) -> bool:
+def db_insert(table: str, data: dict) -> bool:
     global db_cursor, db_connection
+    keys = list(data.keys())
+    values = [data[key] for key in keys]
+    attrs = ', '.join([str(key) for key in keys])
+    values_str = ', '.join([f"{value}" if isinstance(value, int) else f"'{value}'" for value in values])
+
     try:
-        db_cursor.execute(request.format(group_num=path[1:], name=name))
+        db_cursor.execute(INSERT.format(table=table, attrs=attrs, values=values_str))
     except Exception as error:
         print(f'change_db error: {error}')
         return False
@@ -72,6 +78,18 @@ def change_db(path: str, name: str, request: str) -> bool:
         db_connection.commit()
         return bool(db_cursor.rowcount)
     
+def db_delete(table: str, data: dict):
+    global db_cursor, db_connection
+    try:
+        db_cursor.execute(query_request(DELETE.format(table=table), data))
+    except Exception as error:
+        print(f'change_db error: {error}')
+        return False
+    else:
+        db_connection.commit()
+        return bool(db_cursor.rowcount)
+
+
 
 def is_valid_token(username: str, token: str) -> bool:
     global db_cursor
@@ -108,22 +126,20 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'html')
         self.end_headers()
-        self.wfile.write(self.get_template()) ################
+        self.wfile.write(self.get_template())
 
 
     def make_changes(self): # TODO
-        if self.path in PAGES:
+        if self.path.startswith(STUDENTS):
             content_length = int(self.headers['Content-Length'])
-            k = self.rfile.read(content_length).decode(ENCODING)
-            print(k)
-            data = loads(k)
+            data = loads(self.rfile.read(content_length).decode(ENCODING))
             print(f'{self.command} request data: {data}')
             name = data.get('name')
             request = INSERT if self.command == 'POST' else DELETE
             result = 'OK' if change_db(self.path, name, request) else 'FAIL'
             return OK, f'{self.command} {result}'
-        else:
-            return NOT_FOUND, 'Content was NOT FOUND'
+        
+        return NOT_FOUND, 'Content was NOT FOUND'
         
 
     def respond(self, code: int, msg: str):
