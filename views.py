@@ -6,13 +6,13 @@ def list_to_paragraphs(data: list):
 
 def weather(weather: dict) -> bytes:
     with open(WEATHER_TEMPLATE, 'r') as f:
-        return f.read().format(**weather).encode()
+        return f.read().format(**weather).encode(ENCODING)
     
 def students(students_data: dict): ################ 
     print(students_data)
     with open(STUDENTS_TEMPLATE, 'r') as f:
-        return f.read().format(**students_data).encode()
+        return f.read().format(**students_data).encode(ENCODING)
 
 def main_page():
     with open(MAIN_TEMPLATE, 'r') as f: ###############
-        return f.read().encode()
+        return f.read().encode(ENCODING)

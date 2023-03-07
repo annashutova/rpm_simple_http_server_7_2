@@ -30,7 +30,7 @@ def get_data(query: dict, table: str) -> dict:
 def query_select(request: str, query: dict):
     if query:
         parts = []
-        for key, value in query:
+        for key, value in query.items():
             if isinstance(value, int):
                 parts.append(f"{key}={value}")
             else:
@@ -80,8 +80,6 @@ def is_valid_token(username: str, token: str) -> bool:
     if answer:
         return token == answer[0]
     return False
-
-
         
 
 class CustomHandler(BaseHTTPRequestHandler):
@@ -116,7 +114,7 @@ class CustomHandler(BaseHTTPRequestHandler):
     def make_changes(self): # TODO
         if self.path in PAGES:
             content_length = int(self.headers['Content-Length'])
-            k = self.rfile.read(content_length).decode()
+            k = self.rfile.read(content_length).decode(ENCODING)
             print(k)
             data = loads(k)
             print(f'{self.command} request data: {data}')
@@ -132,7 +130,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header('Content-type', 'text')
         self.end_headers()
-        self.wfile.write(msg.encode())
+        self.wfile.write(msg.encode(ENCODING))
 
 
     def check_auth(self):
