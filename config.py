@@ -1,16 +1,25 @@
 HOST = '127.0.0.1'
 PORT = 8001
-MAIN_PAGE = 'index.html'
-GROUP_PAGE = 'group_page.html'
-page_7_2 = '/7_2'
-page_7_1 = '/7_1'
-WEATHER = '/weather'
+
+# TEMPLATES
+MAIN_TEMPLATE = 'index.html'
+STUDENTS_TEMPLATE = 'students.html'
 WEATHER_TEMPLATE = 'weather.html'
-PAGES = page_7_1, page_7_2
-SELECT_GROUPS = 'SELECT * FROM group_{group_num}'
-INSERT = 'INSERT INTO group_{group_num} VALUES (\'{name}\')'
-DELETE = 'DELETE FROM group_{group_num} WHERE name=\'{name}\''
+
+#PAGES
+WEATHER = '/weather'
+STUDENTS = '/students'
+MAIN = '/'
+PAGES = WEATHER, STUDENTS
+
+# db
+SELECT = 'SELECT * FROM {table}'
+INSERT = 'INSERT INTO {table} ({attrs}) VALUES ({values})'
+DELETE = 'DELETE FROM {table}'
+GET_TOKEN = 'SELECT token FROM token WHERE username=\'{username}\''
+
+# HTTTP codes
 OK = 200
 NOT_FOUND = 404
 FORBIDDEN = 403
-GET_TOKEN = 'SELECT token FROM token WHERE username=\'{username}\''
+NO_CONTENT = 400

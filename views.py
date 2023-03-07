@@ -8,14 +8,11 @@ def weather(weather: dict) -> bytes:
     with open(WEATHER_TEMPLATE, 'r') as f:
         return f.read().format(**weather).encode()
     
-def group(path: str, group_data: dict):
-    print(group_data)
-    with open(GROUP_PAGE, 'r') as f:
-        page = f.read()
-        if path in PAGES:
-            return page.format(**group_data).encode()
-    return None
+def students(students_data: dict): ################ 
+    print(students_data)
+    with open(STUDENTS_TEMPLATE, 'r') as f:
+        return f.read().format(**students_data).encode()
 
 def main_page():
-    with open(MAIN_PAGE, 'r') as f:
+    with open(MAIN_TEMPLATE, 'r') as f: ###############
         return f.read().encode()

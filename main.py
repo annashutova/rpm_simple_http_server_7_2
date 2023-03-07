@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from os import getenv
 from config import *
 from json import loads
-from views import weather, group, main_page, list_to_paragraphs
+from views import weather, students, main_page, list_to_paragraphs
 import requests
 
 load_dotenv()
@@ -17,16 +17,26 @@ PG_PASSWORD = getenv('PG_PASSWORD')
 YANDEX_KEY = getenv('YANDEX_KEY')
 
 
-def get_data(path: str) -> dict:
+def get_data(query: dict, table: str) -> dict:
     global db_cursor
-    db_cursor.execute(SELECT_GROUPS.format(group_num=path[1:]))
+    db_cursor.execute(query_select(SELECT.format(table=table), query)) ############
     students = db_cursor.fetchall()
-    print(students)
     return {
         'number': len(students), 
-        'group': '1.11.7.2' if path == page_7_2 else '1.11.7.1',
-        'rendered_students': list_to_paragraphs([record[0] for record in students])
+        'rendered_students': list_to_paragraphs(students)
         }
+
+
+def query_select(request: str, query: dict):
+    if query:
+        parts = []
+        for key, value in query:
+            if isinstance(value, int):
+                parts.append(f"{key}={value}")
+            else:
+                parts.append(f"{key}='{value}'")
+        return '{0} WHERE {1}'.format(request, ' AND '.join(parts))
+    return request
 
 
 def get_weather() -> dict:
@@ -72,24 +82,38 @@ def is_valid_token(username: str, token: str) -> bool:
     return False
 
 
-def get_template(path: str) -> bytes:
-    if path in PAGES:
-        return group(path, get_data(path))
-    elif path == WEATHER:
-        return weather(get_weather())
-    return main_page()
         
 
 class CustomHandler(BaseHTTPRequestHandler):
+
+    def query_from_path(self):
+        result = {}
+        index = self.path.find('?')
+        if index != -1 and index != len(self.path) - 1:
+            query_parts = self.path[index + 1:].split('&')
+            query = [part.split('=') for part in query_parts]
+            for key, value in query:
+                if value.isdigit():
+                    result[key] = int(value)
+                else:
+                    result[key] = value
+        return result
+
+    def get_template(self) -> bytes:
+        if self.path.startswith(STUDENTS):
+            return students(get_data(self.query_from_path(), STUDENTS[1:]))
+        elif self.path.startswith(WEATHER):
+            return weather(get_weather())
+        return main_page()
 
     def do_GET(self):
         self.send_response(200)
         self.send_header('Content-type', 'html')
         self.end_headers()
-        self.wfile.write(get_template(self.path))
+        self.wfile.write(self.get_template()) ################
 
 
-    def make_changes(self):
+    def make_changes(self): # TODO
         if self.path in PAGES:
             content_length = int(self.headers['Content-Length'])
             k = self.rfile.read(content_length).decode()
