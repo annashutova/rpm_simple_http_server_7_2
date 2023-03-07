@@ -62,33 +62,27 @@ def get_weather() -> dict:
         print(f'YANDEX API get_weather failed with status code: {response.status_code}')
     return result
 
-def db_insert(table: str, data: dict) -> bool:
+def change_db(request: str):
     global db_cursor, db_connection
+    try:
+        db_cursor.execute(request)
+    except Exception as error:
+        print(f'change_db error: {error}')
+        return False
+    else:
+        db_connection.commit()
+        return bool(db_cursor.rowcount)
+
+
+def db_insert(table: str, data: dict) -> bool:
     keys = list(data.keys())
     values = [data[key] for key in keys]
     attrs = ', '.join([str(key) for key in keys])
     values_str = ', '.join([f"{value}" if isinstance(value, int) else f"'{value}'" for value in values])
+    return change_db(INSERT.format(table=table, attrs=attrs, values=values_str))
 
-    try:
-        db_cursor.execute(INSERT.format(table=table, attrs=attrs, values=values_str))
-    except Exception as error:
-        print(f'change_db error: {error}')
-        return False
-    else:
-        db_connection.commit()
-        return bool(db_cursor.rowcount)
-    
 def db_delete(table: str, data: dict):
-    global db_cursor, db_connection
-    try:
-        db_cursor.execute(query_request(DELETE.format(table=table), data))
-    except Exception as error:
-        print(f'change_db error: {error}')
-        return False
-    else:
-        db_connection.commit()
-        return bool(db_cursor.rowcount)
-
+    return change_db(query_request(DELETE.format(table=table), data))
 
 
 def is_valid_token(username: str, token: str) -> bool:
@@ -129,15 +123,22 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.wfile.write(self.get_template())
 
 
-    def make_changes(self): # TODO
+    def make_changes(self):
         if self.path.startswith(STUDENTS):
             content_length = int(self.headers['Content-Length'])
             data = loads(self.rfile.read(content_length).decode(ENCODING))
             print(f'{self.command} request data: {data}')
-            name = data.get('name')
-            request = INSERT if self.command == 'POST' else DELETE
-            result = 'OK' if change_db(self.path, name, request) else 'FAIL'
-            return OK, f'{self.command} {result}'
+
+            if self.command == 'PUT':
+                code = OK
+                msg = 'OK' if db_insert(STUDENTS[1:], data) else 'FAIL'
+            elif self.command == 'DELETE':
+                code = OK
+                msg = 'OK' if db_delete(STUDENTS[1:], data) else 'FAIL'
+            else:
+                code = NOT_IMPLEMENTED
+                msg = 'Not implemented by server, available requests are GET, PUT, DELETE'
+            return code, f'{self.command} {msg}'
         
         return NOT_FOUND, 'Content was NOT FOUND'
         
@@ -166,7 +167,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.respond(code, msg)
 
 
-    def do_POST(self):
+    def do_PUT(self):
         self.process()
 
 
