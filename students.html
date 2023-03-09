@@ -5,6 +5,34 @@
         </title>
     </head>
     <body>
+        <br>
+        <form action="/students" name="students_form" id="students_form">
+            <label for="group">Group:</label><br>
+            <input type="text" id="group_" name="group_">
+            <br><br>
+            <label for="age">Age:</label><br>
+            <input type="text" id="age" name="age">
+            <br><br>
+            <label for="fname">First name:</label><br>
+            <input type="text" id="fname" name="fname">
+            <br><br>
+            <label for="lname">Last name:</label><br>
+            <input type="text" id="lname" name="lname">
+            <br><br>
+            <input type="submit">
+        </form>
+        <script>
+            var form = document.getElementById("students_form")
+            form.addEventListener('submit', function () {{
+                var all_inputs = form.getElementsByTagName('input');
+                for (var i=0; i<all_inputs.length; i++) {{
+                    var input = all_inputs[i];
+                    if (input.name && !input.value) {{
+                        input.name = '';
+                    }}
+                }}
+            }});
+        </script>
         <h3>
             Students:
         </h3>
