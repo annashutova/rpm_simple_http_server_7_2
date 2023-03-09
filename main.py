@@ -5,7 +5,7 @@ from os import getenv
 from config import *
 from json import loads
 from views import weather, students, main_page, list_to_paragraphs
-import requests
+from requests import get
 
 
 load_dotenv()
@@ -20,7 +20,7 @@ YANDEX_KEY = getenv('YANDEX_KEY')
 
 def get_data(query: dict, table: str) -> dict:
     global db_cursor
-    db_cursor.execute(query_request(SELECT.format(table=table), query)) ############
+    db_cursor.execute(query_request(SELECT.format(table=table), query))
     students = db_cursor.fetchall()
     return {
         'number': len(students), 
@@ -40,27 +40,39 @@ def query_request(request: str, query: dict):
     return request
 
 
-def get_weather() -> dict:
-    result = {
+def get_weather(query: dict) -> dict:
+    weather_data = {
         'temp': None,
         'feels_like': None,
-        'condition' : None
-        }
-    URL = 'https://api.weather.yandex.ru/v2/informers'
-    location = {'lat': 43.403438, 'lon': 39.981544}
-    response = requests.get(URL, params=location, headers={'X-Yandex-API-Key': YANDEX_KEY})
-    if response.status_code == OK:
-        response_data = response.json()
-        if response_data:
-            fact = response_data.get('fact')
-            try:
-                for key in result.keys():
-                    result[key] = fact.get(key)
-            except Exception as error:
-                print(f'YANDEX API get_weather error: {error}')
+        'condition': None,
+        'location': 'Sirius College'
+    }
+
+    params = LOCATIONS['college']
+    if query:
+        location = query.get('location')
+        if location:
+            params = LOCATIONS[location]
+            weather_data['location'] = location
     else:
-        print(f'YANDEX API get_weather failed with status code: {response.status_code}')
-    return result
+        print(f'{WEATHER_MSG} failed to get location from query, defaults to college')
+    response = get(YANDEX_API_URL, params=params, headers={YANDEX_API_HEADER: YANDEX_KEY})
+    if response.status_code != OK:
+        print(f'{WEATHER_MSG} failed with status code: {response.status_code}')
+        return weather_data
+    response_data = response.json()
+    if not response_data:
+        print(f'{WEATHER_MSG} api did respond with empty content')
+        return weather_data
+    fact = response_data.get('fact')
+    if not fact:
+        print(f'{WEATHER_MSG} api did not provide factual weather data')
+        return weather_data
+    for key in weather_data.keys():
+        if key != 'location':
+            weather_data[key] = fact.get(key)
+    return weather_data
+
 
 def change_db(request: str):
     global db_cursor, db_connection
@@ -113,7 +125,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         if self.path.startswith(STUDENTS):
             return students(get_data(self.query_from_path(), STUDENTS[1:]))
         elif self.path.startswith(WEATHER):
-            return weather(get_weather())
+            return weather(get_weather(self.query_from_path()))
         return main_page()
 
     def do_GET(self):

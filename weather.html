@@ -5,13 +5,26 @@
         </title>
     </head>
     <body>
+        <br><br>
+        <h3>
+            Choose your location:
+        </h3>
+        <br>
+        <form id="weather_form" action="/weather">
+            <select id="weather" name="location" form="weather_form">
+                <option value="college">Sirius College</option>
+                <option value="sochi">Sochi</option>
+                <option value="polyana">Krasnaya polyana</option>
+            </select>
+            <br><br>
+            <input type="submit">
+        </form>
         <h2>
             Weather
         </h2>
         <h3>
-            Sirius College (Voskresenskaya, 18)
+            Location: {location}
         </h3>
-        <br></br>
         <h4>
             Temperature: {temp}
         </h4>
