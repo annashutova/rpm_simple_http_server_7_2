@@ -108,7 +108,7 @@ def is_valid_token(username: str, token: str) -> bool:
 
 class CustomHandler(BaseHTTPRequestHandler):
 
-    def get_query(self, possible_attrs: dict) -> tuple:
+    def get_query(self, possible_attrs: dict = {}) -> tuple:
         result = {}
         index = self.path.find('?')
         if index != -1 and index != len(self.path) - 1:
@@ -119,9 +119,10 @@ class CustomHandler(BaseHTTPRequestHandler):
                     result[key] = int(value)
                 else:
                     result[key] = value
-            for attr in result.keys():
-                if attr not in possible_attrs:
-                    raise Exception(f'unknown attribute <{attr}>')
+            if possible_attrs:
+                for attr in result.keys():
+                    if attr not in possible_attrs:
+                        raise Exception(f'unknown attribute <{attr}>')
         return result
 
     def get_template(self) -> str:
@@ -134,7 +135,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                 return OK, students(get_data(query, STUDENTS[1:]))
         elif self.path.startswith(WEATHER):
             try:
-                query = self.get_query(STUDENTS_ALL_ATTRS)
+                query = self.get_query()
             except Exception as error:
                 return BAD_REQUEST, str(error)
             else:
