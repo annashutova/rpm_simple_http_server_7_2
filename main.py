@@ -108,7 +108,7 @@ def is_valid_token(username: str, token: str) -> bool:
 
 class CustomHandler(BaseHTTPRequestHandler):
 
-    def query_from_path(self):
+    def get_query(self, possible_attrs: dict) -> tuple:
         result = {}
         index = self.path.find('?')
         if index != -1 and index != len(self.path) - 1:
@@ -119,34 +119,72 @@ class CustomHandler(BaseHTTPRequestHandler):
                     result[key] = int(value)
                 else:
                     result[key] = value
+            for attr in result.keys():
+                if attr not in possible_attrs:
+                    raise Exception(f'unknown attribute <{attr}>')
         return result
 
-    def get_template(self) -> bytes:
+    def get_template(self) -> str:
         if self.path.startswith(STUDENTS):
-            return students(get_data(self.query_from_path(), STUDENTS[1:]))
+            try:
+                query = self.get_query(STUDENTS_ALL_ATTRS)
+            except Exception as error:
+                return BAD_REQUEST, str(error)
+            else:
+                return OK, students(get_data(query, STUDENTS[1:]))
         elif self.path.startswith(WEATHER):
-            return weather(get_weather(self.query_from_path()))
-        return main_page()
+            try:
+                query = self.get_query(STUDENTS_ALL_ATTRS)
+            except Exception as error:
+                return BAD_REQUEST, str(error)
+            else:
+                return OK, weather(get_weather(query))
+        return OK, main_page()
+
 
     def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'html')
-        self.end_headers()
-        self.wfile.write(self.get_template())
+        code, page = self.get_template()
+        self.respond(code, page)
+
+
+    def get_body(self, required_attrs: dict = {}) -> tuple:
+            try:
+                content_length = int(self.headers[HEADER_LENGTH])
+            except ValueError:
+                msg = f'error while trying to get {HEADER_LENGTH}'
+                print(f'{__name__}: {msg}')
+                raise Exception(msg)
+            else:
+                body = loads(self.rfile.read(content_length).decode(ENCODING))
+                # проверим, все ли обязательные атрибуты на месте
+                for attr in required_attrs:
+                    if attr not in body:
+                        msg = f'required attribute <{attr}> is missing'
+                        print(f'{__name__} error: {msg}')
+                        raise Exception(msg)
+                return body
 
 
     def make_changes(self):
         if self.path.startswith(STUDENTS):
-            content_length = int(self.headers['Content-Length'])
-            data = loads(self.rfile.read(content_length).decode(ENCODING))
-            print(f'{self.command} request data: {data}')
-
             if self.command == 'PUT':
-                code = OK
-                msg = 'OK' if db_insert(STUDENTS[1:], data) else 'FAIL'
+                try:
+                    body = self.get_body(STUDENTS_REQ_ATTRS)
+                except Exception as error:
+                    code = BAD_REQUEST
+                    msg = str(error)
+                else:
+                    code = OK
+                    msg = 'OK' if db_insert(STUDENTS[1:], body) else 'FAIL'
             elif self.command == 'DELETE':
-                code = OK
-                msg = 'OK' if db_delete(STUDENTS[1:], data) else 'FAIL'
+                try:
+                    query = self.get_query(STUDENTS_ALL_ATTRS)
+                except Exception as error:
+                    code = BAD_REQUEST
+                    msg = str(error)
+                else:
+                    code = OK
+                    msg = 'OK' if db_delete(STUDENTS[1:], query) else 'FAIL'
             else:
                 code = NOT_IMPLEMENTED
                 msg = 'Not implemented by server, available requests are GET, PUT, DELETE'
@@ -157,7 +195,7 @@ class CustomHandler(BaseHTTPRequestHandler):
 
     def respond(self, code: int, msg: str):
         self.send_response(code)
-        self.send_header('Content-type', 'text')
+        self.send_header(HEADER_TYPE, 'text')
         self.end_headers()
         self.wfile.write(msg.encode(ENCODING))
 

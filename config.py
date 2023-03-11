@@ -17,12 +17,14 @@ SELECT = 'SELECT * FROM {table}'
 INSERT = 'INSERT INTO {table} ({attrs}) VALUES ({values})'
 DELETE = 'DELETE FROM {table}'
 GET_TOKEN = 'SELECT token FROM token WHERE username=\'{username}\''
+STUDENTS_ALL_ATTRS = ['id', 'fname', 'lname', 'sname', 'group_', 'age']
+STUDENTS_REQ_ATTRS = ['fname', 'lname', 'group_']
 
 # HTTTP codes
 OK = 200
 NOT_FOUND = 404
 FORBIDDEN = 403
-NO_CONTENT = 400
+BAD_REQUEST = 400
 NOT_IMPLEMENTED = 501
 
 # CODING
@@ -41,6 +43,8 @@ YANDEX_API_URL = 'https://api.weather.yandex.ru/v2/informers'
 
 # headers' names
 YANDEX_API_HEADER = 'X-Yandex-API-Key'
+HEADER_LENGTH = 'Content-Length'
+HEADER_TYPE = 'Content-Type'
 
 # debug messsages
 WEATHER_MSG = 'YANDEX API get_weather'
