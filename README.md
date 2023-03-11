@@ -3,8 +3,7 @@
 ## postgres database
 ###### with tables: 
 ###### token (username text primary key, token uuid)
-###### group_7_1 (name text)
-###### group_7_2 (name text)
+###### students (id integer generated always as identity not null primary key, fname text not null, lname text not null, sname text, group_ text not null, age int)
 
 ## .env file with credentials:
 ###### postgres: PG_DBNAME, PG_HOST, PG_PORT, PG_USER, PG_PASSWORD
