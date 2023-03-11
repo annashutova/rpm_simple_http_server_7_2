@@ -148,21 +148,21 @@ class CustomHandler(BaseHTTPRequestHandler):
 
 
     def get_body(self, required_attrs: dict = {}) -> tuple:
-            try:
-                content_length = int(self.headers[HEADER_LENGTH])
-            except ValueError:
-                msg = f'error while trying to get {HEADER_LENGTH}'
-                print(f'{__name__}: {msg}')
-                raise Exception(msg)
-            else:
-                body = loads(self.rfile.read(content_length).decode(ENCODING))
-                # проверим, все ли обязательные атрибуты на месте
-                for attr in required_attrs:
-                    if attr not in body:
-                        msg = f'required attribute <{attr}> is missing'
-                        print(f'{__name__} error: {msg}')
-                        raise Exception(msg)
-                return body
+        try:
+            content_length = int(self.headers[HEADER_LENGTH])
+        except ValueError:
+            msg = f'error while trying to get {HEADER_LENGTH}'
+            print(f'{__name__}: {msg}')
+            raise Exception(msg)
+        else:
+            body = loads(self.rfile.read(content_length).decode(ENCODING))
+            # проверим, все ли обязательные атрибуты на месте
+            for attr in required_attrs:
+                if attr not in body:
+                    msg = f'required attribute <{attr}> is missing'
+                    print(f'{__name__} error: {msg}')
+                    raise Exception(msg)
+            return body
 
 
     def make_changes(self):
