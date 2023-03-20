@@ -191,8 +191,12 @@ class CustomHandler(BaseHTTPRequestHandler):
                 else:
                     if db_insert(STUDENTS[1:], body):
                         id = get_id(STUDENTS[1:], body)
-                        msg = f'{POST_RESPONSE_URL}{id}'
-                        code = OK
+                        if id: 
+                            msg = f'{POST_RESPONSE_URL}{id}'
+                            code = OK
+                        else:
+                            code = INTERNAL_ERROR
+                            msg = 'id not found after POST'
                     else:
                         code = BAD_REQUEST
                         msg = 'FAIL'
