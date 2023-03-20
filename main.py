@@ -85,17 +85,22 @@ def change_db(request: str):
         db_connection.commit()
         return bool(db_cursor.rowcount)
 
+def is_int(value: any): ############
+    return isinstance(value, int)
 
 def db_insert(table: str, data: dict) -> bool:
     keys = list(data.keys())
     values = [data[key] for key in keys]
     attrs = ', '.join([str(key) for key in keys])
-    values_str = ', '.join([f"{value}" if isinstance(value, int) else f"'{value}'" for value in values])
+    values_str = ', '.join([f"{value}" if is_int(value) else f"'{value}'" for value in values]) ######
     return change_db(INSERT.format(table=table, attrs=attrs, values=values_str))
 
 def db_delete(table: str, data: dict):
     return change_db(query_request(DELETE.format(table=table), data))
 
+def db_update(table: str, query: dict, data: dict):
+    data = ', '.join([f"{key}={val}" if is_int(val) else f"{key}='{val}'" for key, val in data.items()]) #########
+    return change_db(query_request(UPDATE.format(table=table, data=data), query))
 
 def is_valid_token(username: str, token: str) -> bool:
     global db_cursor
@@ -168,7 +173,7 @@ class CustomHandler(BaseHTTPRequestHandler):
 
     def make_changes(self):
         if self.path.startswith(STUDENTS):
-            if self.command == 'PUT':
+            if self.command == 'POST':
                 try:
                     body = self.get_body(STUDENTS_REQ_ATTRS)
                 except Exception as error:
@@ -177,6 +182,16 @@ class CustomHandler(BaseHTTPRequestHandler):
                 else:
                     code = OK
                     msg = 'OK' if db_insert(STUDENTS[1:], body) else 'FAIL'
+            elif self.command == 'PUT':
+                try:
+                    body = self.get_body()
+                    query = self.get_query(STUDENTS_ALL_ATTRS)
+                except Exception as error:
+                    code = BAD_REQUEST
+                    msg = str(error)
+                else:
+                    code = OK
+                    msg = 'OK' if db_update(STUDENTS[1:], query, body) else 'FAIL'
             elif self.command == 'DELETE':
                 try:
                     query = self.get_query(STUDENTS_ALL_ATTRS)
@@ -209,7 +224,6 @@ class CustomHandler(BaseHTTPRequestHandler):
                 return True
         return False
 
-
     def process(self):
         if self.check_auth():
             code, msg = self.make_changes()
@@ -217,12 +231,13 @@ class CustomHandler(BaseHTTPRequestHandler):
             code, msg = FORBIDDEN, 'Authorization was failed!'
         self.respond(code, msg)
 
-
-    def do_PUT(self):
+    def do_POST(self):     # PUT -> POST
         self.process()
 
-
     def do_DELETE(self):
+        self.process()
+
+    def do_PUT(self):
         self.process()
 
 
