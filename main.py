@@ -84,22 +84,32 @@ def change_db(request: str):
     else:
         db_connection.commit()
         return bool(db_cursor.rowcount)
+    
+def get_id(table: str, query: dict):
+    global db_cursor, db_connection
+    try:
+        db_cursor.execute(query_request(SELECT_ID.format(table=table), query))
+    except Exception as error:
+        print(f'db get_id error: {error}')
+        return 0
+    else:
+        return db_cursor.fetchone()[0]
 
-def is_int(value: any): ############
+def is_int(value: any):
     return isinstance(value, int)
 
 def db_insert(table: str, data: dict) -> bool:
     keys = list(data.keys())
     values = [data[key] for key in keys]
     attrs = ', '.join([str(key) for key in keys])
-    values_str = ', '.join([f"{value}" if is_int(value) else f"'{value}'" for value in values]) ######
+    values_str = ', '.join([f"{value}" if is_int(value) else f"'{value}'" for value in values])
     return change_db(INSERT.format(table=table, attrs=attrs, values=values_str))
 
 def db_delete(table: str, data: dict):
     return change_db(query_request(DELETE.format(table=table), data))
 
 def db_update(table: str, query: dict, data: dict):
-    data = ', '.join([f"{key}={val}" if is_int(val) else f"{key}='{val}'" for key, val in data.items()]) #########
+    data = ', '.join([f"{key}={val}" if is_int(val) else f"{key}='{val}'" for key, val in data.items()])
     return change_db(query_request(UPDATE.format(table=table, data=data), query))
 
 def is_valid_token(username: str, token: str) -> bool:
@@ -152,7 +162,6 @@ class CustomHandler(BaseHTTPRequestHandler):
         code, page = self.get_template()
         self.respond(code, page)
 
-
     def get_body(self, required_attrs: dict = {}) -> tuple:
         try:
             content_length = int(self.headers[HEADER_LENGTH])
@@ -180,8 +189,13 @@ class CustomHandler(BaseHTTPRequestHandler):
                     code = BAD_REQUEST
                     msg = str(error)
                 else:
-                    code = OK
-                    msg = 'OK' if db_insert(STUDENTS[1:], body) else 'FAIL'
+                    if db_insert(STUDENTS[1:], body):
+                        id = get_id(STUDENTS[1:], body)
+                        msg = f'{POST_RESPONSE_URL}{id}'
+                        code = OK
+                    else:
+                        code = BAD_REQUEST
+                        msg = 'FAIL'
             elif self.command == 'PUT':
                 try:
                     body = self.get_body()
