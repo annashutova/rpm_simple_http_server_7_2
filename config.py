@@ -6,7 +6,7 @@ MAIN_TEMPLATE = 'index.html'
 STUDENTS_TEMPLATE = 'students.html'
 WEATHER_TEMPLATE = 'weather.html'
 
-#PAGES
+# PAGES
 WEATHER = '/weather'
 STUDENTS = '/students'
 MAIN = '/'
@@ -18,10 +18,10 @@ INSERT = 'INSERT INTO {table} ({attrs}) VALUES ({values})'
 DELETE = 'DELETE FROM {table}'
 UPDATE = 'UPDATE {table} SET {data}'
 SELECT_ID = 'SELECT id FROM {table}'
-GET_TOKEN = 'SELECT token FROM token WHERE username=\'{username}\''
+GET_TOKEN = "SELECT token FROM token WHERE username='{username}'"
 STUDENTS_ALL_ATTRS = ['id', 'fname', 'lname', 'sname', 'group_', 'age']
 STUDENTS_REQ_ATTRS = ['fname', 'lname', 'group_']
-POST_RESPONSE_URL = f'http://{HOST}:{PORT}{STUDENTS}?id='
+POST_URL = f'http://{HOST}:{PORT}{STUDENTS}?id='
 
 # HTTTP codes
 OK = 200
@@ -29,7 +29,7 @@ NOT_FOUND = 404
 FORBIDDEN = 403
 BAD_REQUEST = 400
 NOT_IMPLEMENTED = 501
-INTERNAL_ERROR = 500
+INTERNAL_ERR = 500
 
 # CODING
 ENCODING = 'KOI8-R'
@@ -40,8 +40,8 @@ SOCHI_LOCATION = {'lat': 43.713351, 'lon': 39.580041}
 POLYANA_LOCATION = {'lat': 43.661294, 'lon': 40.268936}
 LOCATIONS = {
     'college': COLLEGE_LOCATION,
-    'sochi': SOCHI_LOCATION, 
-    'polyana': POLYANA_LOCATION
+    'sochi': SOCHI_LOCATION,
+    'polyana': POLYANA_LOCATION,
 }
 YANDEX_API_URL = 'https://api.weather.yandex.ru/v2/informers'
 
